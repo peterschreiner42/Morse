@@ -31,12 +31,12 @@ int n_in_zero = 0;
 
 #define NCHARS 26+10+3 // 39
 
-char morse_chars[NCHARS]  = 
+char Morse_AsccisChars[NCHARS]  = 
 {
 'A','B','C','D','E','F','G','H','I','J','K','L','M','N','O','P','Q','R','S','T','U','V','W','X','Y','Z','0','1','2','3','4','5','6','7','8','9','.',',','?',
 };
 
-char* morse_strings[NCHARS] = 
+char* Morse_MorseChars[NCHARS] = 
 {
  ".-", "-...", "-.-.","-..",".","..-.","--.","....","..",".---","-.-",".-..","--","-.","---",".--.","--.-",".-.","...","-","..-","...-",".--","-..-","-.--","--..","-----",".----","..---","...--","....-",".....","-....","--...","---..","----.",".-.-.-","--..--","..--..",
 };
@@ -79,6 +79,7 @@ void setup()
 
  Serial.begin(9600);
 }
+// End Setup
 
 void dd_print() 
 {
@@ -101,17 +102,17 @@ boolean dd_eq(char*buf)
 
     for(i = 0; ditsdahs[i] != PAUSE && i < DDLEN; i++)
     {
-    // dit == 1
-    if (ditsdahs[i] == DIT && buf[i] == '-')
-    { 
-      return false; 
+      // dit == 1
+      if (ditsdahs[i] == DIT && buf[i] == '-')
+      { 
+        return false; 
+      }
+      // DAH == 2 
+      if (ditsdahs[i] == DAH && buf[i] == '.') 
+      { 
+        return false; 
+      }
     }
-    // DAH == 2 
-    if (ditsdahs[i] == DAH && buf[i] == '.') 
-    { 
-      return false; 
-    }
-  }
 
   /*
   Serial.print("Got to the end of ");
@@ -129,32 +130,22 @@ boolean dd_eq(char*buf)
 
 void dd_decode()
 {
-
   for(int i = 0; i < NCHARS; i++) 
   {
-    /*
-    Serial.print("dd_decode: check i=");
-    Serial.print(i);
-    Serial.print(" , string=\"");
-    Serial.print(morse_strings[i]);
-    Serial.print("\", c=");
-    Serial.print(morse_chars[i]);
-    Serial.println();
-    */
-    if (dd_eq(morse_strings[i])) 
+    if (dd_eq(Morse_MorseChars[i])) 
     {
-      char c = morse_chars[i];
+      char c = Morse_AsccisChars[i];
       char_emit(c);
       break;
     }
- }
+  }
 
- for (int i = 0; i < DDLEN; i++) 
- {
-   ditsdahs[i] = 0;
- }
+  for (int i = 0; i < DDLEN; i++) 
+  {
+    ditsdahs[i] = 0;
+  }
 
- dd_cursor = 0;
+  dd_cursor = 0;
 }
 
 void check_passwd() 
@@ -216,6 +207,9 @@ void pause()
   Serial.println("PAUSE"); 
 }
 
+// ===========================================================================
+// LOOP
+// ===========================================================================
 void loop()
 {
   val = digitalRead(inputPin);  // read input value
