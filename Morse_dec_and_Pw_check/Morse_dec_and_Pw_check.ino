@@ -16,233 +16,195 @@
 * There's still lots of stuff to do and clean up, but I wanted to share the idea
 * and the current implementation to help spur people on.
 */
-
 #include <avr/pgmspace.h>
 #include <string.h>
 
+const int ledPin = 13;
+const int inputPin = 2;
+
 #define THRESHOLD 3
-#define DELAY_TIME 10 // ms
+#define DELAY_TIME 10
 
-int ledPin = 13;                // choose the pin for the LED
-int inputPin = 2;               // choose the input pin (for a pushbutton)
-int val = 0;                    // variable for reading the pin status
-int n_since_zero = 0;
-int n_in_zero = 0;
+#define NCHARS 26 + 10 + 3
 
-#define NCHARS 26+10+3 // 39
+char Morse_AsccisChars[NCHARS] =
+    {
+        'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z', '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '.', ',', '?'};
 
-char Morse_AsccisChars[NCHARS]  = 
-{
-'A','B','C','D','E','F','G','H','I','J','K','L','M','N','O','P','Q','R','S','T','U','V','W','X','Y','Z','0','1','2','3','4','5','6','7','8','9','.',',','?',
-};
-
-char* Morse_MorseChars[NCHARS] = 
-{
- ".-", "-...", "-.-.","-..",".","..-.","--.","....","..",".---","-.-",".-..","--","-.","---",".--.","--.-",".-.","...","-","..-","...-",".--","-..-","-.--","--..","-----",".----","..---","...--","....-",".....","-....","--...","---..","----.",".-.-.-","--..--","..--..",
-};
-
+char *Morse_MorseChars[NCHARS] =
+    {
+        ".-", "-...", "-.-.", "-..", ".", "..-.", "--.", "....", "..", ".---", "-.-", ".-..", "--", "-.", "---", ".--.", "--.-", ".-.", "...", "-", "..-", "...-", ".--", "-..-", "-.--", "--..", "-----", ".----", "..---", "...--", "....-", ".....", "-....", "--...", "---..", "----.", ".-.-.-", "--..--", "..--.."};
 
 #define PAUSE 0
 #define DIT 1
 #define DAH 2
 #define DDLEN 5
 
-char passwd[] = "SOS";
-char chars_rx[10];
-int char_cursor= 0;
+char password[] = "SOS";
+char receivedChars[10];
+int receivedCharsCursor = 0;
 
-// int Array length 5
-int ditsdahs[DDLEN];
-int dd_cursor = 0;
+int morseSequence[DDLEN];
+int morseSequenceCursor = 0;
 
-
-void setup() 
+void setup()
 {
- pinMode(ledPin, OUTPUT);      // declare LED as output
- pinMode(inputPin, INPUT);     // declare pushbutton as input
+  pinMode(ledPin, OUTPUT);
+  pinMode(inputPin, INPUT);
 
- // Felder des Arrays mit value 0 initialisieren. Muss das sein?
- for (int i = 0; i < DDLEN; i++) 
- {
-   ditsdahs[i] = 0;
- }
-
- dd_cursor = 0;
-
- // Felder des Arrays mit value 0 initialisieren
- for (int i = 0; i < 10; i++) 
- {
-     chars_rx[i] = 0;
- }
-
- char_cursor = 0;
-
- Serial.begin(9600);
-}
-// End Setup
-
-void dd_print() 
-{
-  Serial.print("  > DD BUF: ");
-
-  for(int i = 0; i < DDLEN; i++) 
+  for (int i = 0; i < DDLEN; i++)
   {
-    Serial.print(ditsdahs[i]);
-    Serial.print(", ");
+    morseSequence[i] = 0;
   }
 
+  morseSequenceCursor = 0;
+
+  for (int i = 0; i < 10; i++)
+  {
+    receivedChars[i] = 0;
+  }
+
+  receivedCharsCursor = 0;
+
+  Serial.begin(9600);
+}
+
+void printMorseSequence()
+{
+  Serial.print("  > Morse Sequence: ");
+  for (int i = 0; i < DDLEN; i++)
+  {
+    Serial.print(morseSequence[i]);
+    Serial.print(", ");
+  }
   Serial.println();
 }
 
-boolean dd_eq(char*buf)
+boolean compareMorseSequence(char *sequence)
 {
-    if(ditsdahs[0] == PAUSE) return false;
+  if (morseSequence[0] == PAUSE)
+    return false;
 
-    int i;
+  int i;
 
-    for(i = 0; ditsdahs[i] != PAUSE && i < DDLEN; i++)
+  for (i = 0; morseSequence[i] != PAUSE && i < DDLEN; i++)
+  {
+    if (morseSequence[i] == DIT && sequence[i] == '-')
     {
-      // dit == 1
-      if (ditsdahs[i] == DIT && buf[i] == '-')
-      { 
-        return false; 
-      }
-      // DAH == 2 
-      if (ditsdahs[i] == DAH && buf[i] == '.') 
-      { 
-        return false; 
-      }
+      return false;
     }
+    if (morseSequence[i] == DAH && sequence[i] == '.')
+    {
+      return false;
+    }
+  }
 
-  /*
-  Serial.print("Got to the end of ");
-    Serial.print(buf);
-    Serial.print("; checking strlen=");
-    Serial.print(strlen(buf));
-    Serial.print(" == i=");
-    Serial.println(i);
-    */
+  if (i != strlen(sequence))
+    return false;
 
-  if (i != strlen(buf)) return false;
-  
   return true;
 }
 
-void dd_decode()
+void decodeMorse()
 {
-  for(int i = 0; i < NCHARS; i++) 
+  for (int i = 0; i < NCHARS; i++)
   {
-    if (dd_eq(Morse_MorseChars[i])) 
+    if (compareMorseSequence(Morse_MorseChars[i]))
     {
       char c = Morse_AsccisChars[i];
-      char_emit(c);
+      emitCharacter(c);
       break;
     }
   }
 
-  for (int i = 0; i < DDLEN; i++) 
+  for (int i = 0; i < DDLEN; i++)
   {
-    ditsdahs[i] = 0;
+    morseSequence[i] = 0;
   }
 
-  dd_cursor = 0;
+  morseSequenceCursor = 0;
 }
 
-void check_passwd() 
+void checkPassword()
 {
   Serial.print("Check password: ");
-  Serial.print(chars_rx);
+  Serial.print(receivedChars);
   Serial.println();
 
-  if (0 != strstr(chars_rx, passwd)) 
+  if (0 != strstr(receivedChars, password))
   {
     digitalWrite(ledPin, HIGH);
   }
-  /*
-  for (int i = 0; i < 10; i++) {
-  chars_rx[i] = 0;
-  }
-  char_cursor = 0;
-  */
 }
 
-void char_emit(char c) 
+void emitCharacter(char c)
 {
-  Serial.print("Got a char: c=");
+  Serial.print("Got a character: c=");
   Serial.println(c);
-  chars_rx[char_cursor] = c;
-  char_cursor++;
-  if (char_cursor >= strlen(passwd)) 
+  receivedChars[receivedCharsCursor] = c;
+  receivedCharsCursor++;
+  if (receivedCharsCursor >= strlen(password))
   {
-    check_passwd();
+    checkPassword();
   }
 }
 
-void dd_emit(int v) 
+void emitMorse(int value)
 {
-  ditsdahs[dd_cursor] = v;  //dd_cursor wird nach Setup nie mer zurück gesetzt. Wächst nur ->int32
+  morseSequence[morseSequenceCursor] = value;
+  morseSequenceCursor++;
 
-  dd_cursor++;
-
-  dd_print();
-  if (v == PAUSE)
-    dd_decode();
+  printMorseSequence();
+  if (value == PAUSE)
+    decodeMorse();
 }
 
-// ===========================================================================
-// LOOP
-// ===========================================================================
 void loop()
 {
-  val = digitalRead(inputPin);  // read input value
-  if (val == LOW) 
+  int val = digitalRead(inputPin);
+  static int timeSinceLow = 0;
+  static int timeInLow = 0;
+
+  if (val == LOW)
   {
-    if (n_since_zero > 5) 
+    if (timeSinceLow > 5)
     {
-     /*  Serial.print("CROSS LOW AFTER ");
-      Serial.println(n_since_zero);
-      */
-      if (n_since_zero > 16) 
-      { 
-        dd_emit(DAH); 
-      } 
-      else 
+      if (timeSinceLow > 16)
       {
-        dd_emit(DIT); 
+        emitMorse(DAH);
+      }
+      else
+      {
+        emitMorse(DIT);
       }
     }
 
-   n_since_zero = 0;
-   n_in_zero++;
-  } 
-  else 
+    timeSinceLow = 0;
+    timeInLow++;
+  }
+  else
   {
-    n_since_zero++;
+    timeSinceLow++;
   }
 
-  if (n_in_zero == 20) 
+  if (timeInLow == 20)
   {
-    dd_emit(PAUSE); 
+    emitMorse(PAUSE);
   }
 
-  if (n_since_zero > THRESHOLD) 
+  if (timeSinceLow > THRESHOLD)
   {
-    if (n_in_zero > 0) 
+    if (timeInLow > 0)
     {
-     // Serial.print("CROSS HIGH AFTER ");
-     //Serial.print(" > ");
-     // Serial.println(n_in_zero);
-     //      Serial.println("**************************");
+      // digitalWrite(ledPin, HIGH);
     }
-   
-    n_in_zero = 0;
-   // digitalWrite(ledPin, HIGH);
-  } 
-  else 
+
+    timeInLow = 0;
+  }
+  else
   {
-   // digitalWrite(ledPin, LOW);
+    // digitalWrite(ledPin, LOW);
   }
 
   delay(DELAY_TIME);
 }
-
