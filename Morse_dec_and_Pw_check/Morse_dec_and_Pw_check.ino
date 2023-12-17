@@ -180,31 +180,13 @@ void char_emit(char c)
 
 void dd_emit(int v) 
 {
-  ditsdahs[dd_cursor] = v;
+  ditsdahs[dd_cursor] = v;  //dd_cursor wird nach Setup nie mer zurück gesetzt. Wächst nur ->int32
 
   dd_cursor++;
 
   dd_print();
   if (v == PAUSE)
     dd_decode();
-}
-
-void dit()   
-{ 
-  dd_emit(DIT); 
-  Serial.println("DIT"); 
-}
-
-void dah()   
-{ 
-  dd_emit(DAH); 
-  Serial.println("DAH"); 
-}
-
-void pause() 
-{ 
-  dd_emit(PAUSE); 
-  Serial.println("PAUSE"); 
 }
 
 // ===========================================================================
@@ -222,11 +204,11 @@ void loop()
       */
       if (n_since_zero > 16) 
       { 
-        dah(); 
+        dd_emit(DAH); 
       } 
       else 
       {
-        dit();
+        dd_emit(DIT); 
       }
     }
 
@@ -240,7 +222,7 @@ void loop()
 
   if (n_in_zero == 20) 
   {
-    pause();
+    dd_emit(PAUSE); 
   }
 
   if (n_since_zero > THRESHOLD) 
