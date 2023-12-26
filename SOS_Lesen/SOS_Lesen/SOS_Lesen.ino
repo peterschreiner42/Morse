@@ -72,7 +72,6 @@ void setup() {
   pinMode(tonePin, OUTPUT);
   pinMode(buttonPin, INPUT_PULLUP);
   Serial.begin(9600);
-
   WriteStartScreen();
 
   //if false, do NOT check for end of letter gap
