@@ -56,6 +56,7 @@ char* letters[] = {
   "...", "-", "..-", "...-", ".--", "-..-", "-.--", "--.."          // S-Z
 };
 
+
 char* numbers[] = {
   "-----", ".----", "..---", "...--", "....-",  //0-4
   ".....", "-....", "--...", "---..", "----."   //5-9
@@ -104,12 +105,12 @@ void loop() {
     //check if dot or dash
     if (onTime <= dotLength * 1.5)  //allow for 50% longer
     {
-      dashSeq = dashSeq + ".";
+      dashSeq += ".";
     }  //build dot/dash sequence
     else if (onTime >= resetLength) {
       DoReset();
     } else {
-      dashSeq = dashSeq + "-";
+      dashSeq += "-";
     }
   }  //end button press section
 
